@@ -13,7 +13,7 @@ interface Translations {
 
 const translations: Translations = {
     // Navigation
-    appName: { en: 'VisionAI', zh: '视觉分析' },
+    appName: { en: 'PixelMentor', zh: 'PixelMentor' },
     login: { en: 'Log in', zh: '登录' },
     signup: { en: 'Sign up free', zh: '免费注册' },
     upload: { en: 'Upload', zh: '上传照片' },

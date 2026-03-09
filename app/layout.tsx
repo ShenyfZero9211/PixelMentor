@@ -3,8 +3,8 @@ import './globals.css';
 import { LanguageProvider } from './LanguageContext';
 
 export const metadata: Metadata = {
-    title: 'Vision AI - Photo Analysis & Suggestions',
-    description: 'AI-powered photo analysis and post-processing suggestions',
+    title: 'PixelMentor - AI Photo Retouching Assistant',
+    description: 'An elegant, AI-driven photo analysis and retouching suggestion app',
 };
 
 export default function RootLayout({
