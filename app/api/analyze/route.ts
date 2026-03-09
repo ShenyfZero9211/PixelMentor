@@ -1,0 +1,101 @@
+import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth';
+import dbConnect from '@/lib/mongodb';
+import Analysis from '@/models/Analysis';
+import OpenAI from 'openai';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+
+const openai = new OpenAI({
+    apiKey: process.env.GLM_API_KEY,
+    baseURL: 'https://www.dmxapi.cn/v1',
+});
+
+export async function POST(request: Request) {
+    try {
+        const session = await getSession();
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const formData = await request.formData();
+        const file = formData.get('image') as File;
+        const promptParam = formData.get('prompt') as string;
+
+        if (!file) {
+            return NextResponse.json({ error: 'No image uploaded' }, { status: 400 });
+        }
+
+        const defaultPrompt = '分析这张照片的内容，并提供详细的后期修图建议（例如色彩调整、光影调节、构图优化等）。';
+        const finalPrompt = promptParam || defaultPrompt;
+
+        // Save file locally for history and viewing
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+
+        const uploadDir = join(process.cwd(), 'public/uploads');
+        try {
+            await mkdir(uploadDir, { recursive: true });
+        } catch (err) {
+            // Ignored if directory exists
+        }
+
+        const filePath = join(uploadDir, fileName);
+        await writeFile(filePath, buffer);
+        const fileUrl = `/uploads/${fileName}`;
+
+        // Convert to Base64 for OpenAI API
+        const base64Image = buffer.toString('base64');
+        const mimeType = file.type || 'image/jpeg';
+        const base64Url = `data:${mimeType};base64,${base64Image}`;
+
+        // Call GLM API
+        console.log(`[Analyze] Starting GLM API call for image size: ${(buffer.length / 1024 / 1024).toFixed(2)} MB`);
+        const completion = await openai.chat.completions.create({
+            model: 'GLM-4.1V-Thinking-Flash',
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: finalPrompt },
+                        {
+                            type: 'image_url',
+                            image_url: {
+                                url: base64Url,
+                            },
+                        },
+                    ],
+                },
+            ],
+            max_tokens: 4096, // Add max_tokens to ensure response limit
+        }, { timeout: 120000 }); // 2-minute timeout for fetch
+
+        console.log(`[Analyze] GLM API call succeeded`);
+        const result = completion.choices[0].message.content || '未返回有效建议。';
+
+        await dbConnect();
+
+        // Save to DB
+        const analysis = await Analysis.create({
+            userId: session.id,
+            imageUrl: fileUrl,
+            prompt: finalPrompt,
+            result: result,
+        });
+
+        return NextResponse.json({
+            message: 'Analysis complete',
+            analysis: {
+                id: analysis._id,
+                imageUrl: analysis.imageUrl,
+                prompt: analysis.prompt,
+                result: analysis.result,
+                createdAt: analysis.createdAt,
+            },
+        });
+    } catch (error: any) {
+        console.error('Analysis Error:', error);
+        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    }
+}
