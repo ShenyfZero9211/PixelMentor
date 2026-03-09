@@ -3,8 +3,6 @@ import { getSession } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import Analysis from '@/models/Analysis';
 import OpenAI from 'openai';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 
 const openai = new OpenAI({
     apiKey: process.env.GLM_API_KEY,
@@ -29,23 +27,11 @@ export async function POST(request: Request) {
         const defaultPrompt = '分析这张照片的内容，并提供详细的后期修图建议（例如色彩调整、光影调节、构图优化等）。';
         const finalPrompt = promptParam || defaultPrompt;
 
-        // Save file locally for history and viewing
+        // Process the file into memory buffer
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
 
-        const uploadDir = join(process.cwd(), 'public/uploads');
-        try {
-            await mkdir(uploadDir, { recursive: true });
-        } catch (err) {
-            // Ignored if directory exists
-        }
-
-        const filePath = join(uploadDir, fileName);
-        await writeFile(filePath, buffer);
-        const fileUrl = `/uploads/${fileName}`;
-
-        // Convert to Base64 for OpenAI API
+        // Convert to Base64 for OpenAI API and Database Storage
         const base64Image = buffer.toString('base64');
         const mimeType = file.type || 'image/jpeg';
         const base64Url = `data:${mimeType};base64,${base64Image}`;
@@ -76,10 +62,10 @@ export async function POST(request: Request) {
 
         await dbConnect();
 
-        // Save to DB
+        // Save to DB (We store the Base64 URL directly instead of a local file path so it works on Vercel's serverless environment)
         const analysis = await Analysis.create({
             userId: session.id,
-            imageUrl: fileUrl,
+            imageUrl: base64Url,
             prompt: finalPrompt,
             result: result,
         });
