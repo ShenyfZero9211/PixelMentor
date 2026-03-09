@@ -5,8 +5,9 @@
 **PixelMentor (像素导师)** allows users to upload their photography and leverages the power of advanced Vision-Language Models (like GLM-4V) to perform deep analysis. It provides immediate, structured, and actionable post-processing advice focusing on Color, Lighting, and Composition.
 
 <div align="center">
-  <img src="public/demo1.jpg" alt="Demo Image 1" width="45%" border="1" />
-  <img src="public/demo2.jpg" alt="Demo Image 2" width="45%" border="1" />
+  <img src="public/demo1.jpg" alt="Demo Image 1" width="100%" />
+  <br><br>
+  <img src="public/demo2.jpg" alt="Demo Image 2" width="100%" />
 </div>
 
 ## 🌟 Features
