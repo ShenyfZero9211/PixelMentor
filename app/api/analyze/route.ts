@@ -12,8 +12,21 @@ const openai = new OpenAI({
 export async function POST(request: Request) {
     try {
         const session = await getSession();
+        
+        let isGuest = false;
+        let ipAddress = request.headers.get('x-forwarded-for') || '127.0.0.1';
+        if (ipAddress.includes(',')) {
+            ipAddress = ipAddress.split(',')[0].trim();
+        }
+
+        await dbConnect();
+
         if (!session) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            isGuest = true;
+            const usageCount = await Analysis.countDocuments({ isGuest: true, ipAddress });
+            if (usageCount >= 2) {
+                return NextResponse.json({ error: '试用次数已达上限（2次），请登录或注册以继续使用。' }, { status: 429 });
+            }
         }
 
         const formData = await request.formData();
@@ -60,11 +73,11 @@ export async function POST(request: Request) {
         console.log(`[Analyze] GLM API call succeeded`);
         const result = completion.choices[0].message.content || '未返回有效建议。';
 
-        await dbConnect();
-
         // Save to DB (We store the Base64 URL directly instead of a local file path so it works on Vercel's serverless environment)
         const analysis = await Analysis.create({
-            userId: session.id,
+            userId: session ? session.id : undefined,
+            isGuest,
+            ipAddress,
             imageUrl: base64Url,
             prompt: finalPrompt,
             result: result,

@@ -30,6 +30,9 @@ export default function LandingPage() {
                     </p>
 
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                        <Link href="/dashboard" className="btn-secondary" style={{ padding: '1rem 2rem', fontSize: '1.125rem' }}>
+                            {t('tryItOut')}
+                        </Link>
                         <Link href="/register" className="btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.125rem' }}>
                             {t('getStarted')}
                         </Link>

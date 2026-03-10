@@ -19,6 +19,9 @@ const translations: Translations = {
     upload: { en: 'Upload', zh: '上传照片' },
     history: { en: 'History', zh: '历史记录' },
     logout: { en: 'Log out', zh: '登出' },
+    tryItOut: { en: 'Try it out', zh: '直接试用' },
+    guestMode: { en: 'Guest Mode', zh: '游客模式' },
+    loginPrompt: { en: 'Login / Register', zh: '登录 / 注册' },
 
     // Landing Page
     heroTitle1: { en: 'Elevate Your Photos with', zh: '让您的照片焕发新生' },
